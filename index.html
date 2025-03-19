@@ -155,6 +155,7 @@
 <div id="adminPanel" class="admin-panel">
     <h2 class="text-center text-white">Manage Participants</h2>
     <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control">
+   
     <button class="btn-custom btn-block" onclick="uploadFile()">Upload Excel File</button>
     <hr>
     <table id="participantTable" class="table table-bordered mt-4">
@@ -195,33 +196,45 @@
         renderTable();
     }
 
-    function uploadFile() {
-        const file = document.getElementById('fileInput').files[0];
-        if (!file) {
-            alert('Please select a file');
-            return;
-        }
+  function uploadFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const data = e.target.result;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = e.target.result;
+        try {
             const workbook = XLSX.read(data, { type: 'binary' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(sheet);
-
-            // Assuming the data contains Name, Trader Address, Coupon Code columns
+            
+            // Validate if required columns are present
             json.forEach(row => {
                 const { Name, TraderAddress, CouponCode } = row;
                 if (Name && TraderAddress && CouponCode) {
                     participants.push({ name: Name, traderAddress: TraderAddress, couponCode: CouponCode });
+                } else {
+                    alert("Missing required fields in some rows (Name, TraderAddress, CouponCode). Please check your file.");
+                    return;
                 }
             });
 
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
-        };
-        reader.readAsBinaryString(file);
-    }
+        } catch (error) {
+            alert("Error reading or parsing the Excel file. Please make sure the file is in the correct format.");
+            console.error(error);
+        }
+    };
+    reader.onerror = function (error) {
+        alert("Error reading the file: " + error);
+    };
+    reader.readAsBinaryString(file);
+}
+
 
     function renderTable() {
         const tbody = document.querySelector('#participantTable tbody');
