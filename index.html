@@ -210,21 +210,32 @@
             const workbook = XLSX.read(data, { type: 'binary' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(sheet);
+            
+            let addedCount = 0;
+            let skippedCount = 0;
 
-            // Validate if required columns are present
+            // Loop through each row and validate required fields
             json.forEach(row => {
                 const { Name, TraderAddress, CouponCode } = row;
-                if (Name && TraderAddress && CouponCode) {
-                    participants.push({ name: Name, traderAddress: TraderAddress, couponCode: CouponCode });
+                // Trim the fields (if they exist) for better validation.
+                const name = Name ? Name.toString().trim() : "";
+                const traderAddress = TraderAddress ? TraderAddress.toString().trim() : "";
+                const couponCode = CouponCode ? CouponCode.toString().trim() : "";
+
+                if (name && traderAddress && couponCode) {
+                    // Check for duplicates before adding
+                    if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        participants.push({ name, traderAddress, couponCode });
+                        addedCount++;
+                    }
                 } else {
-                    alert("Missing required fields in some rows (Name, TraderAddress, CouponCode). Please check your file.");
-                    return;
+                    skippedCount++;
                 }
             });
 
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
-            alert("File uploaded successfully!");
+            alert(`Upload complete: ${addedCount} records added, ${skippedCount} records skipped due to missing required fields.`);
         } catch (error) {
             alert("Error reading or parsing the Excel file. Please make sure the file is in the correct format.");
             console.error(error);
@@ -235,6 +246,7 @@
     };
     reader.readAsBinaryString(file);
 }
+
 
 
 
