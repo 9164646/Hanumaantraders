@@ -196,59 +196,55 @@
         renderTable();
     }
 
-  function uploadFile() {
-    const file = document.getElementById('fileInput').files[0];
-    if (!file) {
-        alert('Please select a file');
-        return;
+    function uploadFile() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) {
+            alert('Please select a file');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const data = e.target.result;
+            try {
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+
+                let addedCount = 0;
+                let skippedCount = 0;
+
+                json.forEach(row => {
+                    const { Name, TraderAddress, CouponCode } = row;
+                    const name = Name ? Name.toString().trim() : "";
+                    const traderAddress = TraderAddress ? TraderAddress.toString().trim() : "";
+                    const couponCode = CouponCode ? CouponCode.toString().trim() : "";
+
+                    if (name && traderAddress && couponCode) {
+                        if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                            participants.push({ name, traderAddress, couponCode });
+                            addedCount++;
+                        }
+                    } else {
+                        skippedCount++;
+                    }
+                });
+
+                localStorage.setItem('participants', JSON.stringify(participants));
+                renderTable();
+                alert(`Upload complete: ${addedCount} records added, ${skippedCount} records skipped due to missing required fields.`);
+            } catch (error) {
+                alert("Error reading or parsing the Excel file. Please make sure the file is in the correct format.");
+                console.error(error);
+            }
+        };
+        reader.onerror = function (error) {
+            alert("Error reading the file: " + error);
+        };
+        reader.readAsBinaryString(file);
     }
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const data = e.target.result;
-        try {
-            const workbook = XLSX.read(data, { type: 'binary' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(sheet);
-            
-            let addedCount = 0;
-            let skippedCount = 0;
-
-            // Loop through each row and validate required fields
-            json.forEach(row => {
-                const { Name, TraderAddress, CouponCode } = row;
-                // Trim the fields (if they exist) for better validation.
-                const name = Name ? Name.toString().trim() : "";
-                const traderAddress = TraderAddress ? TraderAddress.toString().trim() : "";
-                const couponCode = CouponCode ? CouponCode.toString().trim() : "";
-
-                if (name && traderAddress && couponCode) {
-                    // Check for duplicates before adding
-                    if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                        participants.push({ name, traderAddress, couponCode });
-                        addedCount++;
-                    }
-                } else {
-                    skippedCount++;
-                }
-            });
-
-            localStorage.setItem('participants', JSON.stringify(participants));
-            renderTable();
-            alert(`Upload complete: ${addedCount} records added, ${skippedCount} records skipped due to missing required fields.`);
-        } catch (error) {
-            alert("Error reading or parsing the Excel file. Please make sure the file is in the correct format.");
-            console.error(error);
-        }
-    };
-    reader.onerror = function (error) {
-        alert("Error reading the file: " + error);
-    };
-    reader.readAsBinaryString(file);
-}
-
-
-       // Add/Update Participant with duplicate check
+    // Add/Update Participant with duplicate check
     function addParticipant() {
         const name = document.getElementById('participantName').value.trim();
         const traderAddress = document.getElementById('traderAddress').value.trim();
@@ -272,10 +268,6 @@
             alert("Please enter both Name and Trader Address.");
         }
     }
-
-
-    
-
 
     function renderTable() {
         const tbody = document.querySelector('#participantTable tbody');
@@ -303,68 +295,53 @@
         prizes.forEach(prize => {
             const eligible = participants.filter(p => !winners.find(w => w.name === p.name));
             for (let i = 0; i < prize.count; i++) {
-                const randomIndex = Math.floor(Math.random() * eligible.length);
-                winners.push({ ...eligible.splice(randomIndex, 1)[0], prize: prize.prize, gift: prize.gift });
+                if (eligible.length > 0) {
+                    const winnerIndex = Math.floor(Math.random() * eligible.length);
+                    const winner = eligible.splice(winnerIndex, 1)[0];
+                    winners.push({ name: winner.name, prize: prize.prize, gift: prize.gift, couponCode: winner.couponCode });
+                    alert(`Winner: ${winner.name} - ${prize.prize}`);
+                }
             }
         });
 
         localStorage.setItem('winners', JSON.stringify(winners));
-        document.getElementById('startDrawBtn').disabled = true;
-        showWinners();
-    }
-
-    function showWinners() {
+        renderWinners();
         document.getElementById('winnerList').classList.remove('hidden');
-        renderWinnersTable(winners);
     }
 
-    function filterWinners() {
-        const couponCode = document.getElementById('filterCouponCode').value.trim();
-        const filteredWinners = couponCode ? winners.filter(w => w.couponCode === couponCode) : winners;
-        renderWinnersTable(filteredWinners);
-    }
-
-    function renderWinnersTable(filteredWinners) {
-        const winnersTable = document.getElementById('winnersTable').querySelector('tbody');
-        winnersTable.innerHTML = '';
-
-        filteredWinners.forEach((w, i) => {
-            winnersTable.innerHTML += `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${w.name}</td>
-                    <td>${w.prize}</td>
-                    <td>${w.gift}</td>
-                    <td>${w.couponCode}</td>
-                </tr>`;
+    function renderWinners() {
+        const tbody = document.querySelector('#winnersTable tbody');
+        tbody.innerHTML = '';
+        winners.forEach((w, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${i + 1}</td>
+                <td>${w.name}</td>
+                <td>${w.prize}</td>
+                <td>${w.gift}</td>
+                <td>${w.couponCode}</td>
+            </tr>`;
         });
     }
 
     function exportWinnersPDF() {
-        const docDefinition = {
-            content: [
-                { text: 'Sri Hanumaan Trader\'s Lucky Draw Winners', style: 'header' },
-                { table: { body: [['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'], ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode]) ]}, style: 'table' },
-            ],
-            styles: {
-                header: { fontSize: 18, bold: true, alignment: 'center' },
-                table: { margin: [0, 5, 0, 5], alignment: 'center' }
-            }
-        };
-        pdfMake.createPdf(docDefinition).download('LuckyDraw_Winners.pdf');
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text("Winners List", 14, 22);
+        doc.autoTable({ html: '#winnersTable' });
+        doc.save("winners.pdf");
     }
 
     function exportWinnersExcel() {
-        const ws = XLSX.utils.json_to_sheet(winners);
+        const ws = XLSX.utils.table_to_sheet(document.getElementById('winnersTable'));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Winners");
-        XLSX.writeFile(wb, 'LuckyDraw_Winners.xlsx');
+        XLSX.writeFile(wb, 'winners.xlsx');
     }
 
-    function deleteParticipant(index) {
-        participants.splice(index, 1);
-        localStorage.setItem('participants', JSON.stringify(participants));
-        renderTable();
+    function resetWinners() {
+        winners = [];
+        localStorage.setItem('winners', JSON.stringify(winners));
+        renderWinners();
     }
 
     function deleteAllParticipants() {
@@ -374,6 +351,41 @@
             renderTable();
         }
     }
+
+    function editParticipant(index) {
+        document.getElementById('participantName').value = participants[index].name;
+        document.getElementById('traderAddress').value = participants[index].traderAddress;
+        editIndex = index;
+    }
+
+    function deleteParticipant(index) {
+        if (confirm("Are you sure you want to delete this participant?")) {
+            participants.splice(index, 1);
+            localStorage.setItem('participants', JSON.stringify(participants));
+            renderTable();
+        }
+    }
+
+    function filterWinners() {
+        const filterCode = document.getElementById('filterCouponCode').value.toLowerCase();
+        const filteredWinners = winners.filter(w => w.couponCode.toLowerCase().includes(filterCode));
+        renderFilteredWinners(filteredWinners);
+    }
+
+    function renderFilteredWinners(filteredWinners) {
+        const tbody = document.querySelector('#winnersTable tbody');
+        tbody.innerHTML = '';
+        filteredWinners.forEach((w, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${i + 1}</td>
+                <td>${w.name}</td>
+                <td>${w.prize}</td>
+                <td>${w.gift}</td>
+                <td>${w.couponCode}</td>
+            </tr>`;
+        });
+    }
 </script>
+
 </body>
 </html>
