@@ -5,56 +5,171 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Sri Hanumaan Trader's Lucky Draw</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
-        body { background: #2d2f38; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        h1 { color: #1E90FF; margin-bottom: 20px; }
-        .btn-custom { background: #1E90FF; color: #fff; border: none; padding: 12px 20px; margin: 5px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; }
-        .btn-custom:hover { background: #5b7dff; }
-        table { width: 100%; background: #fff; color: #000; margin-top: 20px; border-radius: 8px; }
-        th, td { padding: 12px; border: 1px solid #ddd; }
-        .hidden { display: none; }
-        .admin-panel { background: #333; padding: 15px; border-radius: 10px; margin-top: 20px; }
-        .coupon-input { margin-top: 20px; }
-        .coupon-input input { margin-right: 10px; padding: 10px; border-radius: 5px; }
-        .winner-list { margin-top: 20px; }
+        body {
+            background: #2c3e50;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            padding: 40px 0;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #1E90FF;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-custom {
+            background: #1E90FF;
+            color: #fff;
+            border: none;
+            padding: 14px 22px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            font-size: 1.1rem;
+        }
+
+        .btn-custom:hover {
+            background: #4CAF50;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-custom:focus {
+            outline: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .table {
+            background-color: #fff;
+            color: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        th {
+            background-color: #1E90FF;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .admin-panel {
+            background: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            margin-top: 40px;
+            display: none;
+        }
+
+        .admin-panel input[type="file"] {
+            margin-top: 20px;
+        }
+
+        .coupon-input input {
+            width: 65%;
+            margin-right: 15px;
+        }
+
+        .coupon-input button {
+            width: 30%;
+        }
+
+        .winner-list {
+            margin-top: 40px;
+        }
+
+        .card {
+            margin-bottom: 40px;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .alert {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .filters {
+            margin-top: 30px;
+        }
+
+        .card-header {
+            background: #1E90FF;
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .card-footer {
+            background: #f5f5f5;
+            text-align: center;
+            padding: 15px;
+            border-radius: 0 0 10px 10px;
+        }
     </style>
 </head>
 <body>
+
 <audio id="drumroll" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
 <audio id="chime" src="https://www.fesliyanstudios.com/play-mp3/438" preload="auto"></audio>
 
 <h1>Sri Hanumaan Trader's Lucky Draw</h1>
-<button class="btn-custom" onclick="toggleAdminPanel()">Admin Panel</button>
-<button id="startDrawBtn" class="btn-custom" onclick="startDraw()">Start Lucky Draw</button>
-<button class="btn-custom" onclick="exportWinnersPDF()">Download PDF</button>
-<button class="btn-custom" onclick="resetWinners()">Reset Winners</button>
-<button class="btn-custom" onclick="exportWinnersExcel()">Export to Excel</button>
-<button class="btn-custom" onclick="deleteAllParticipants()">Delete All Participants</button>
 
-<!-- Admin Panel -->
-<div id="adminPanel" class="hidden admin-panel">
-    <h2>Manage Participants</h2>
-    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control mb-2">
-    <button class="btn-custom" onclick="uploadFile()">Upload Excel File</button>
+<div class="text-center">
+    <button class="btn-custom" onclick="toggleAdminPanel()">Admin Panel</button>
+    <button id="startDrawBtn" class="btn-custom" onclick="startDraw()">Start Lucky Draw</button>
+    <button class="btn-custom" onclick="exportWinnersPDF()">Download PDF</button>
+    <button class="btn-custom" onclick="resetWinners()">Reset Winners</button>
+    <button class="btn-custom" onclick="exportWinnersExcel()">Export to Excel</button>
+    <button class="btn-custom" onclick="deleteAllParticipants()">Delete All Participants</button>
+</div>
+
+<div id="adminPanel" class="admin-panel">
+    <h2 class="text-center text-white">Manage Participants</h2>
+    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control">
+    <button class="btn-custom btn-block" onclick="uploadFile()">Upload Excel File</button>
     <hr>
-    <table id="participantTable" class="table table-bordered mt-3">
+    <table id="participantTable" class="table table-bordered mt-4">
         <thead><tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
 
-<!-- Winners Section -->
 <div id="winnerList" class="winner-list hidden">
-    <h2>Winners List</h2>
-    <div class="coupon-input">
-        <input type="text" id="filterCouponCode" placeholder="Enter Coupon Code to filter winners" class="form-control">
+    <h2 class="text-center text-white">Winners List</h2>
+    <div class="coupon-input text-center">
+        <input type="text" id="filterCouponCode" placeholder="Enter Coupon Code to filter winners" class="form-control mb-2 d-inline-block">
         <button class="btn-custom" onclick="filterWinners()">Filter</button>
     </div>
-    <table id="winnersTable" class="table table-bordered mt-3">
+    <table id="winnersTable" class="table table-bordered mt-4">
         <thead><tr><th>S. No</th><th>Name</th><th>Prize</th><th>Gift</th><th>Coupon Code</th></tr></thead>
         <tbody></tbody>
     </table>
@@ -63,7 +178,6 @@
 <script>
     let participants = JSON.parse(localStorage.getItem('participants')) || [];
     let winners = JSON.parse(localStorage.getItem('winners')) || [];
-    let editIndex = -1;
 
     const prizes = [
         { prize: '1st Prize - 6 Gram Gold', count: 1, gift: '6 Gram Gold' },
@@ -75,7 +189,9 @@
     ];
 
     function toggleAdminPanel() {
-        document.getElementById('adminPanel').classList.toggle('hidden');
+        const panel = document.getElementById('adminPanel');
+        panel.classList.toggle('hidden');
+        panel.style.display = panel.classList.contains('hidden') ? 'none' : 'block';
         renderTable();
     }
 
