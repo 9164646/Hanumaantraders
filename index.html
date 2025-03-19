@@ -29,6 +29,18 @@
             0% { transform: translateY(-10px); }
             100% { transform: translateY(100vh); }
         }
+        /* New CSS for Winner List Background and Text */
+        #winnerList h2 {
+            color: blue; 
+            background-color: yellow; 
+            padding: 10px;
+        }
+        #winnerList table {
+            background-color: yellow;
+        }
+        #winnerList td, #winnerList th {
+            color: blue; 
+        }
     </style>
 </head>
 <body>
@@ -180,8 +192,8 @@
         winnerList.classList.remove('hidden');
 
         let html = `
-            <h2 style="color: #1E90FF; margin-bottom: 20px;">Winners List</h2>
-            <table style="width: 100%; border-collapse: collapse; background: #fff; color: #000; border-radius: 5px; overflow: hidden;">
+            <h2 style="color: blue; background-color: yellow; padding: 10px;">Winners List</h2>
+            <table style="width: 100%; border-collapse: collapse; background: yellow; color: blue; border-radius: 5px; overflow: hidden;">
                 <thead style="background: #1E90FF; color: #fff;">
                     <tr>
                         <th style="padding: 10px; border: 1px solid #ddd;">S. No</th>
