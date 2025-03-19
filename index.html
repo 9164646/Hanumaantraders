@@ -248,6 +248,33 @@
 }
 
 
+       // Add/Update Participant with duplicate check
+    function addParticipant() {
+        const name = document.getElementById('participantName').value.trim();
+        const traderAddress = document.getElementById('traderAddress').value.trim();
+        
+        if (name && traderAddress) {
+            // Check for duplicate names (case-insensitive)
+            if (participants.some((p, i) => p.name.toLowerCase() === name.toLowerCase() && i !== editIndex)) {
+                alert("Participant with this name already exists.");
+                return;
+            }
+            
+            if (editIndex === -1) {
+                participants.push({ name, traderAddress });
+            } else {
+                participants[editIndex] = { name, traderAddress };
+                editIndex = -1;
+            }
+            localStorage.setItem('participants', JSON.stringify(participants));
+            renderTable();
+        } else {
+            alert("Please enter both Name and Trader Address.");
+        }
+    }
+
+
+    
 
 
     function renderTable() {
