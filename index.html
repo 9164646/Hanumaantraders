@@ -121,29 +121,44 @@
     }
 
     function uploadExcel() {
-        const fileInput = document.getElementById('excelFile');
-        if (!fileInput.files.length) return alert("Please select an Excel file.");
+    const fileInput = document.getElementById('excelFile');
+    if (!fileInput.files.length) return alert("Please select an Excel file.");
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const workbook = XLSX.read(e.target.result, { type: 'binary' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(sheet);
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet, { raw: true });
 
-            data.forEach(row => {
-                if (row.Name && row['Trader Address']) {
-                    if (!participants.some(p => p.name.toLowerCase() === row.Name.toLowerCase())) {
-                        participants.push({ name: row.Name, traderAddress: row['Trader Address'] });
-                    }
+        let newParticipants = [];
+        
+        // Loop through all the rows in the uploaded Excel file
+        data.forEach(row => {
+            const name = row.Name && row.Name.trim();
+            const traderAddress = row['Trader Address'] && row['Trader Address'].trim();
+
+            // Only add rows where both Name and Trader Address are not empty
+            if (name && traderAddress) {
+                // Check if participant already exists
+                if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    newParticipants.push({ name, traderAddress });
                 }
-            });
+            }
+        });
 
+        if (newParticipants.length) {
+            participants = [...participants, ...newParticipants];
             localStorage.setItem('participants', JSON.stringify(participants));
             alert("Participants uploaded successfully!");
-            renderTable();
-        };
-        reader.readAsBinaryString(fileInput.files[0]);
-    }
+        } else {
+            alert("No valid data found in the file.");
+        }
+
+        renderTable();
+    };
+    reader.readAsBinaryString(fileInput.files[0]);
+}
+
 
     function downloadTemplate() {
         const ws = XLSX.utils.json_to_sheet([{ Name: '', 'Trader Address': '' }]);
