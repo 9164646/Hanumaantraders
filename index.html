@@ -10,37 +10,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        body { background: #2d2f38; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         h1 { color: #1E90FF; margin-bottom: 20px; }
-        .btn-custom { background: #1E90FF; color: #000; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
-        table { width: 100%; background: #fff; color: #000; margin-top: 20px; border-radius: 5px; }
-        th, td { padding: 10px; border: 1px solid #ddd; }
-        #winnerList { margin-top: 20px; }
+        .btn-custom { background: #1E90FF; color: #fff; border: none; padding: 12px 20px; margin: 5px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s ease; }
+        .btn-custom:hover { background: #5b7dff; }
+        table { width: 100%; background: #fff; color: #000; margin-top: 20px; border-radius: 8px; }
+        th, td { padding: 12px; border: 1px solid #ddd; }
         .hidden { display: none; }
-        .confetti {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: #1E90FF;
-            top: 0;
-            animation: fall 3s ease-out;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10px); }
-            100% { transform: translateY(100vh); }
-        }
-        /* New CSS for Winner List Background and Text */
-        #winnerList h2 {
-            color: blue; 
-            background-color: yellow; 
-            padding: 10px;
-        }
-        #winnerList table {
-            background-color: yellow;
-        }
-        #winnerList td, #winnerList th {
-            color: blue; 
-        }
+        .admin-panel { background: #333; padding: 15px; border-radius: 10px; margin-top: 20px; }
+        .coupon-input { margin-top: 20px; }
+        .coupon-input input { margin-right: 10px; padding: 10px; border-radius: 5px; }
+        .winner-list { margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -56,10 +36,11 @@
 <button class="btn-custom" onclick="deleteAllParticipants()">Delete All Participants</button>
 
 <!-- Admin Panel -->
-<div id="adminPanel" class="hidden">
+<div id="adminPanel" class="hidden admin-panel">
     <h2>Manage Participants</h2>
     <input type="text" id="participantName" placeholder="Enter Name" class="form-control mb-2">
     <input type="text" id="traderAddress" placeholder="Enter Trader Address" class="form-control mb-2">
+    <input type="text" id="couponCode" placeholder="Enter Coupon Code" class="form-control mb-2">
     <button class="btn-custom" onclick="addParticipant()">Add/Update</button>
 
     <hr>
@@ -70,13 +51,23 @@
     <a href="#" onclick="downloadTemplate()" class="btn-custom">Download Template</a>
     
     <table id="participantTable" class="table table-bordered mt-3">
-        <thead><tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Actions</th></tr></thead>
+        <thead><tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
 
 <!-- Winners Section -->
-<div id="winnerList" class="hidden"></div>
+<div id="winnerList" class="winner-list hidden">
+    <h2>Winners List</h2>
+    <div class="coupon-input">
+        <input type="text" id="filterCouponCode" placeholder="Enter Coupon Code to filter winners" class="form-control">
+        <button class="btn-custom" onclick="filterWinners()">Filter</button>
+    </div>
+    <table id="winnersTable" class="table table-bordered mt-3">
+        <thead><tr><th>S. No</th><th>Name</th><th>Prize</th><th>Gift</th><th>Coupon Code</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
 
 <script>
     let participants = JSON.parse(localStorage.getItem('participants')) || [];
@@ -100,68 +91,66 @@
     function addParticipant() {
         const name = document.getElementById('participantName').value.trim();
         const traderAddress = document.getElementById('traderAddress').value.trim();
-        
-        if (name && traderAddress) {
+        const couponCode = document.getElementById('couponCode').value.trim();
+
+        if (name && traderAddress && couponCode) {
             if (participants.some((p, i) => p.name.toLowerCase() === name.toLowerCase() && i !== editIndex)) {
                 alert("Participant with this name already exists.");
                 return;
             }
             
             if (editIndex === -1) {
-                participants.push({ name, traderAddress });
+                participants.push({ name, traderAddress, couponCode });
             } else {
-                participants[editIndex] = { name, traderAddress };
+                participants[editIndex] = { name, traderAddress, couponCode };
                 editIndex = -1;
             }
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
         } else {
-            alert("Please enter both Name and Trader Address.");
+            alert("Please enter all fields.");
         }
     }
 
     function uploadExcel() {
-    const fileInput = document.getElementById('excelFile');
-    if (!fileInput.files.length) return alert("Please select an Excel file.");
+        const fileInput = document.getElementById('excelFile');
+        if (!fileInput.files.length) return alert("Please select an Excel file.");
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const workbook = XLSX.read(e.target.result, { type: 'binary' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(sheet, { raw: true });
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const workbook = XLSX.read(e.target.result, { type: 'binary' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { raw: true });
 
-        let newParticipants = [];
-        
-        // Loop through all the rows in the uploaded Excel file
-        data.forEach(row => {
-            const name = row.Name && row.Name.trim();
-            const traderAddress = row['Trader Address'] && row['Trader Address'].trim();
+            let newParticipants = [];
+            
+            data.forEach(row => {
+                const name = row.Name && row.Name.trim();
+                const traderAddress = row['Trader Address'] && row['Trader Address'].trim();
+                const couponCode = row['Coupon Code'] && row['Coupon Code'].trim();
 
-            // Only add rows where both Name and Trader Address are not empty
-            if (name && traderAddress) {
-                // Check if participant already exists
-                if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                    newParticipants.push({ name, traderAddress });
+                if (name && traderAddress && couponCode) {
+                    if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        newParticipants.push({ name, traderAddress, couponCode });
+                    }
                 }
+            });
+
+            if (newParticipants.length) {
+                participants = [...participants, ...newParticipants];
+                localStorage.setItem('participants', JSON.stringify(participants));
+                alert("Participants uploaded successfully!");
+            } else {
+                alert("No valid data found in the file.");
             }
-        });
 
-        if (newParticipants.length) {
-            participants = [...participants, ...newParticipants];
-            localStorage.setItem('participants', JSON.stringify(participants));
-            alert("Participants uploaded successfully!");
-        } else {
-            alert("No valid data found in the file.");
-        }
-
-        renderTable();
-    };
-    reader.readAsBinaryString(fileInput.files[0]);
-}
-
+            renderTable();
+        };
+        reader.readAsBinaryString(fileInput.files[0]);
+    }
 
     function downloadTemplate() {
-        const ws = XLSX.utils.json_to_sheet([{ Name: '', 'Trader Address': '' }]);
+        const ws = XLSX.utils.json_to_sheet([{ Name: '', 'Trader Address': '', 'Coupon Code': '' }]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Template");
         XLSX.writeFile(wb, 'LuckyDraw_Template.xlsx');
@@ -175,6 +164,7 @@
                 <td>${i + 1}</td>
                 <td>${p.name}</td>
                 <td>${p.traderAddress}</td>
+                <td>${p.couponCode}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick="editParticipant(${i})">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteParticipant(${i})">Delete</button>
@@ -202,42 +192,35 @@
         showWinners();
     }
 
-    function showWinners() {
+    function filterWinners() {
+        const couponCode = document.getElementById('filterCouponCode').value.trim();
+        const filteredWinners = couponCode ? winners.filter(w => w.couponCode === couponCode) : winners;
+        renderWinnersTable(filteredWinners);
+    }
+
+    function renderWinnersTable(filteredWinners) {
         const winnerList = document.getElementById('winnerList');
+        const winnersTable = document.getElementById('winnersTable').querySelector('tbody');
         winnerList.classList.remove('hidden');
+        winnersTable.innerHTML = '';
 
-        let html = `
-            <h2 style="color: blue; background-color: yellow; padding: 10px;">Winners List</h2>
-            <table style="width: 100%; border-collapse: collapse; background: yellow; color: blue; border-radius: 5px; overflow: hidden;">
-                <thead style="background: #1E90FF; color: #fff;">
-                    <tr>
-                        <th style="padding: 10px; border: 1px solid #ddd;">S. No</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Name</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Prize</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Gift</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-        winners.forEach((w, i) => {
-            html += `
+        filteredWinners.forEach((w, i) => {
+            winnersTable.innerHTML += `
                 <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${i + 1}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${w.name}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${w.prize}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${w.gift}</td>
+                    <td>${i + 1}</td>
+                    <td>${w.name}</td>
+                    <td>${w.prize}</td>
+                    <td>${w.gift}</td>
+                    <td>${w.couponCode}</td>
                 </tr>`;
         });
-
-        html += `</tbody></table>`;
-        winnerList.innerHTML = html;
     }
 
     function exportWinnersPDF() {
         const docDefinition = {
             content: [
                 { text: 'Sri Hanumaan Trader\'s Lucky Draw Winners', style: 'header' },
-                { table: { body: [['S. No', 'Name', 'Prize', 'Gift'], ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift]) ]}, style: 'table' },
+                { table: { body: [['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'], ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode]) ]}, style: 'table' },
             ],
             styles: {
                 header: { fontSize: 18, bold: true, alignment: 'center' },
@@ -260,16 +243,8 @@
         renderTable();
     }
 
-    function resetWinners() {
-        winners = [];
-        localStorage.setItem('winners', JSON.stringify(winners));
-        alert("Winners have been reset!");
-        document.getElementById('startDrawBtn').disabled = false;
-    }
-
     function deleteAllParticipants() {
-        const confirmDelete = confirm("Are you sure you want to delete all participants?");
-        if (confirmDelete) {
+        if (confirm("Are you sure you want to delete all participants?")) {
             participants = [];
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
