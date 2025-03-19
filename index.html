@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
         body { background: #2d2f38; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         h1 { color: #1E90FF; margin-bottom: 20px; }
@@ -37,11 +38,8 @@
 <!-- Admin Panel -->
 <div id="adminPanel" class="hidden admin-panel">
     <h2>Manage Participants</h2>
-    <input type="text" id="participantName" placeholder="Enter Name" class="form-control mb-2">
-    <input type="text" id="traderAddress" placeholder="Enter Trader Address" class="form-control mb-2">
-    <input type="text" id="couponCode" placeholder="Enter Coupon Code" class="form-control mb-2">
-    <button class="btn-custom" onclick="addParticipant()">Add/Update</button>
-
+    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control mb-2">
+    <button class="btn-custom" onclick="uploadFile()">Upload Excel File</button>
     <hr>
     <table id="participantTable" class="table table-bordered mt-3">
         <thead><tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr></thead>
@@ -81,28 +79,32 @@
         renderTable();
     }
 
-    function addParticipant() {
-        const name = document.getElementById('participantName').value.trim();
-        const traderAddress = document.getElementById('traderAddress').value.trim();
-        const couponCode = document.getElementById('couponCode').value.trim();
+    function uploadFile() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) {
+            alert('Please select a file');
+            return;
+        }
 
-        if (name && traderAddress && couponCode) {
-            if (participants.some((p, i) => p.name.toLowerCase() === name.toLowerCase() && i !== editIndex)) {
-                alert("Participant with this name already exists.");
-                return;
-            }
-            
-            if (editIndex === -1) {
-                participants.push({ name, traderAddress, couponCode });
-            } else {
-                participants[editIndex] = { name, traderAddress, couponCode };
-                editIndex = -1;
-            }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            // Assuming the data contains Name, Trader Address, Coupon Code columns
+            json.forEach(row => {
+                const { Name, TraderAddress, CouponCode } = row;
+                if (Name && TraderAddress && CouponCode) {
+                    participants.push({ name: Name, traderAddress: TraderAddress, couponCode: CouponCode });
+                }
+            });
+
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
-        } else {
-            alert("Please enter all fields.");
-        }
+        };
+        reader.readAsBinaryString(file);
     }
 
     function renderTable() {
