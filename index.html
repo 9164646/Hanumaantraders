@@ -5,277 +5,171 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Sri Hanumaan Trader's Lucky Draw</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        body {
-            background: #2c3e50;
-            font-family: 'Poppins', sans-serif;
-            color: #fff;
-            padding: 40px 0;
-            margin: 0;
+        body { background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        h1 { color: #FFD700; margin-bottom: 20px; }
+        .btn-custom { background: #FFD700; color: #000; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        table { width: 100%; background: #fff; color: #000; margin-top: 20px; border-radius: 5px; }
+        th, td { padding: 10px; border: 1px solid #ddd; }
+        #winnerList { margin-top: 20px; }
+        .hidden { display: none; }
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #FFD700;
+            top: 0;
+            animation: fall 3s ease-out;
         }
-
-        h1 {
-            font-size: 3rem;
-            color: #1E90FF;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .btn-custom {
-            background: #1E90FF;
-            color: #fff;
-            border: none;
-            padding: 14px 22px;
-            margin: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-
-        .btn-custom:hover {
-            background: #4CAF50;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .table {
-            background-color: #fff;
-            color: #333;
-        }
-
-        th {
-            background: #1E90FF;
-            color: #fff;
-        }
-
-        .admin-panel {
-            background: #34495e;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 40px;
+        @keyframes fall {
+            0% { transform: translateY(-10px); }
+            100% { transform: translateY(100vh); }
         }
     </style>
 </head>
 <body>
-<h1>Sri Hanumaan Trader's Lucky Draw</h1>
+    <audio id="drumroll" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
+    <audio id="chime" src="https://www.fesliyanstudios.com/play-mp3/438" preload="auto"></audio>
 
-<div class="text-center">
+    <h1>Sri Hanumaan Trader's Lucky Draw</h1>
     <button class="btn-custom" onclick="toggleAdminPanel()">Admin Panel</button>
     <button id="startDrawBtn" class="btn-custom" onclick="startDraw()">Start Lucky Draw</button>
     <button class="btn-custom" onclick="exportWinnersPDF()">Download PDF</button>
     <button class="btn-custom" onclick="resetWinners()">Reset Winners</button>
     <button class="btn-custom" onclick="exportWinnersExcel()">Export to Excel</button>
     <button class="btn-custom" onclick="deleteAllParticipants()">Delete All Participants</button>
-</div>
 
-<!-- Admin Panel -->
-<div id="adminPanel" class="admin-panel hidden">
-    <h2 class="text-center text-white">Manage Participants</h2>
-    <div class="form-group">
-        <input type="text" id="participantName" placeholder="Participant Name" class="form-control">
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+        <h2>Manage Participants</h2>
+        <input type="text" id="participantName" placeholder="Enter Name" class="form-control mb-2">
+        <input type="text" id="traderAddress" placeholder="Enter Trader Address" class="form-control mb-2">
+        <button class="btn-custom" onclick="addParticipant()">Add/Update</button>
+
+        <hr>
+        <h3>Upload Excel File</h3>
+        <input type="file" id="excelFile" accept=".xlsx, .xls" class="form-control mb-2">
+        <button class="btn-custom" onclick="uploadExcel()">Upload Participants</button>
+        <a href="#" onclick="downloadTemplate()" class="btn-custom">Download Template</a>
+
+        <table id="participantTable" class="table table-bordered mt-3">
+            <thead>
+                <tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-    <div class="form-group">
-        <input type="text" id="traderAddress" placeholder="Trader Address" class="form-control">
-    </div>
-    <div class="form-group">
-        <input type="text" id="couponCode" placeholder="Coupon Code" class="form-control">
-    </div>
-    <button class="btn-custom" onclick="addParticipant()">Add Participant</button>
-    <hr>
-    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control mb-3" onchange="uploadFile()">
-    <table id="participantTable" class="table table-bordered">
-        <thead>
-            <tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
 
-<!-- Winners List -->
-<div id="winnerList" class="hidden">
-    <h2 class="text-center text-white">Winners List</h2>
-    <table id="winnersTable" class="table table-bordered">
-        <thead><tr><th>S. No</th><th>Name</th><th>Prize</th><th>Gift</th><th>Coupon Code</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
+    <!-- Winners Section -->
+    <div id="winnerList" class="hidden"></div>
 
-<script>
-    let participants = JSON.parse(localStorage.getItem('participants')) || [];
-    let winners = JSON.parse(localStorage.getItem('winners')) || [];
+    <script>
+        let participants = JSON.parse(localStorage.getItem('participants')) || [];
+        let winners = JSON.parse(localStorage.getItem('winners')) || [];
+        let editIndex = -1;
 
-    function toggleAdminPanel() {
-        const panel = document.getElementById('adminPanel');
-        panel.classList.toggle('hidden');
-        renderTable();
-    }
+        const prizes = [
+            { prize: '1st Prize - 6 Gram Gold', count: 1, gift: '6 Gram Gold' },
+            { prize: '2nd Prize - 4 Gram Gold', count: 2, gift: '4 Gram Gold' },
+            { prize: '3rd Prize - 3 Gram Gold', count: 3, gift: '3 Gram Gold' },
+            { prize: '4th Prize - 2 Gram Gold', count: 4, gift: '2 Gram Gold' },
+            { prize: '5th Prize - 1 Gram Gold', count: 5, gift: '1 Gram Gold' },
+            { prize: '6th Prize - 0.5 Gram Silver', count: 6, gift: '0.5 Gram Silver' }
+        ];
 
-    function addParticipant() {
-        const name = document.getElementById('participantName').value.trim();
-        const traderAddress = document.getElementById('traderAddress').value.trim();
-        const couponCode = document.getElementById('couponCode').value.trim();
-
-        if (name && traderAddress && couponCode) {
-            participants.push({ name, traderAddress, couponCode });
-            localStorage.setItem('participants', JSON.stringify(participants));
+        function toggleAdminPanel() {
+            document.getElementById('adminPanel').classList.toggle('hidden');
             renderTable();
-            alert('Participant added!');
-        } else {
-            alert('Please fill in all fields.');
         }
-    }
 
-    function deleteParticipant(index) {
-        participants.splice(index, 1);
-        localStorage.setItem('participants', JSON.stringify(participants));
-        renderTable();
-    }
+        function addParticipant() {
+            const name = document.getElementById('participantName').value.trim();
+            const traderAddress = document.getElementById('traderAddress').value.trim();
 
-    function uploadFile() {
-    const fileInput = document.getElementById('fileInput');
-    const file = fileInput.files[0];
+            if (!name || !traderAddress) return alert("Please enter both Name and Trader Address.");
 
-    if (!file) {
-        alert('Please select a file to upload.');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet);
-
-        // Validate rows and format correctly
-        rows.forEach(row => {
-            const name = row['Name'] || row['Participant Name'] || row['name'];
-            const traderAddress = row['Trader Address'] || row['Address'] || row['traderAddress'];
-            const couponCode = row['Coupon Code'] || row['Coupon'] || row['couponCode'];
-
-            if (name && traderAddress && couponCode) {
-                participants.push({ name, traderAddress, couponCode });
-            }
-        });
-
-        if (participants.length === 0) {
-            alert('No valid data found in the file. Please check column names.');
-        } else {
-            localStorage.setItem('participants', JSON.stringify(participants));
-            renderTable();
-            alert('Participants uploaded successfully!');
-        }
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-
-    function exportWinnersPDF() {
-        const docDefinition = {
-            content: [
-                { text: 'Winners List', style: 'header' },
-                {
-                    table: {
-                        body: [
-                            ['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'],
-                            ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode])
-                        ]
-                    }
+            if (editIndex === -1) {
+                if (participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    alert("Participant with this name already exists.");
+                    return;
                 }
-            ],
-            styles: {
-                header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] }
+                participants.push({ name, traderAddress });
+            } else {
+                participants[editIndex] = { name, traderAddress };
+                editIndex = -1;
             }
-        };
-        pdfMake.createPdf(docDefinition).download('winners.pdf');
-    }
 
-    function exportWinnersExcel() {
-        const ws = XLSX.utils.json_to_sheet(winners);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Winners');
-        XLSX.writeFile(wb, 'winners.xlsx');
-    }
+            localStorage.setItem('participants', JSON.stringify(participants));
+            renderTable();
+        }
 
-    function resetWinners() {
-        winners = [];
-        localStorage.setItem('winners', JSON.stringify(winners));
-        alert('Winners list reset!');
-        renderWinners();
-    }
+        function renderTable() {
+            const tbody = document.querySelector('#participantTable tbody');
+            tbody.innerHTML = '';
+            participants.forEach((p, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${p.name}</td>
+                        <td>${p.traderAddress}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editParticipant(${i})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteParticipant(${i})">Delete</button>
+                        </td>
+                    </tr>`;
+            });
+        }
 
-    function deleteAllParticipants() {
-        participants = [];
-        localStorage.setItem('participants', JSON.stringify(participants));
+        function editParticipant(index) {
+            const participant = participants[index];
+            document.getElementById('participantName').value = participant.name;
+            document.getElementById('traderAddress').value = participant.traderAddress;
+            editIndex = index;
+        }
+
+        function uploadExcel() {
+            const fileInput = document.getElementById('excelFile');
+            if (!fileInput.files.length) return alert("Please select an Excel file.");
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(sheet);
+
+                data.forEach(row => {
+                    if (row.Name && row['Trader Address'] && !participants.some(p => p.name.toLowerCase() === row.Name.toLowerCase())) {
+                        participants.push({ name: row.Name, traderAddress: row['Trader Address'] });
+                    }
+                });
+
+                localStorage.setItem('participants', JSON.stringify(participants));
+                alert("Participants uploaded successfully!");
+                renderTable();
+            };
+            reader.readAsBinaryString(fileInput.files[0]);
+        }
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.json_to_sheet([{ Name: '', 'Trader Address': '' }]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, 'LuckyDraw_Template.xlsx');
+        }
+
+        function exportWinnersExcel() {
+            const ws = XLSX.utils.json_to_sheet(winners);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Winners");
+            XLSX.writeFile(wb, "Winners_List.xlsx");
+        }
+
         renderTable();
-    }
-
-    function renderTable() {
-        const tbody = document.querySelector('#participantTable tbody');
-        tbody.innerHTML = '';
-        participants.forEach((p, i) => {
-            tbody.innerHTML += `<tr>
-                <td>${i + 1}</td>
-                <td>${p.name}</td>
-                <td>${p.traderAddress}</td>
-                <td>${p.couponCode}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteParticipant(${i})">Delete</button></td>
-            </tr>`;
-        });
-    }
-
-    renderTable();
-    renderWinners();
-    function startDraw() {
-    const numWinners = parseInt(prompt('Enter number of winners:'), 10);
-    if (isNaN(numWinners) || numWinners <= 0 || numWinners > participants.length) {
-        alert('Invalid number of winners.');
-        return;
-    }
-
-    winners = [];
-    const shuffled = participants.sort(() => 0.5 - Math.random());
-    for (let i = 0; i < numWinners; i++) {
-        const winner = shuffled[i];
-        const prize = prompt(`Enter prize for ${winner.name}:`, '');
-        const gift = prompt(`Enter gift for ${winner.name}:`, '');
-        winners.push({ ...winner, prize, gift });
-    }
-
-    localStorage.setItem('winners', JSON.stringify(winners));
-    renderWinners();
-    alert('Lucky draw completed!');
-}
-
-function renderWinners() {
-    const winnerList = document.getElementById('winnerList');
-    winnerList.classList.remove('hidden');
-
-    const tbody = document.querySelector('#winnersTable tbody');
-    tbody.innerHTML = '';
-    winners.forEach((w, i) => {
-        tbody.innerHTML += `<tr>
-            <td>${i + 1}</td>
-            <td>${w.name}</td>
-            <td>${w.prize}</td>
-            <td>${w.gift}</td>
-            <td>${w.couponCode}</td>
-        </tr>`;
-    });
-}
-
-// Ensure winners are shown on page reload
-renderWinners();
-
-</script>
+    </script>
 </body>
 </html>
