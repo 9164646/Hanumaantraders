@@ -140,19 +140,44 @@
     }
 
     function uploadFile() {
-        const file = document.getElementById('fileInput').files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet);
-            participants = participants.concat(rows);
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Please select a file to upload.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        // Validate rows and format correctly
+        rows.forEach(row => {
+            const name = row['Name'] || row['Participant Name'] || row['name'];
+            const traderAddress = row['Trader Address'] || row['Address'] || row['traderAddress'];
+            const couponCode = row['Coupon Code'] || row['Coupon'] || row['couponCode'];
+
+            if (name && traderAddress && couponCode) {
+                participants.push({ name, traderAddress, couponCode });
+            }
+        });
+
+        if (participants.length === 0) {
+            alert('No valid data found in the file. Please check column names.');
+        } else {
             localStorage.setItem('participants', JSON.stringify(participants));
             renderTable();
-        };
-        reader.readAsArrayBuffer(file);
-    }
+            alert('Participants uploaded successfully!');
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
 
     function exportWinnersPDF() {
         const docDefinition = {
