@@ -121,6 +121,61 @@
         renderTable();
     }
 
+    function startDraw() {
+    if (participants.length === 0) {
+        alert("No participants added!");
+        return;
+    }
+
+    const numWinners = prompt("How many winners do you want to pick?");
+    if (!numWinners || isNaN(numWinners) || numWinners <= 0) {
+        alert("Please enter a valid number of winners.");
+        return;
+    }
+
+    winners = [];
+    const shuffled = [...participants].sort(() => 0.5 - Math.random());
+    for (let i = 0; i < Math.min(numWinners, shuffled.length); i++) {
+        const winner = {
+            ...shuffled[i],
+            prize: `Prize ${i + 1}`,
+            gift: `Gift ${i + 1}`
+        };
+        winners.push(winner);
+    }
+
+    localStorage.setItem('winners', JSON.stringify(winners));
+    alert(`${winners.length} winners selected!`);
+    renderWinners();
+}
+
+function renderWinners() {
+    const winnerTable = document.querySelector("#winnersTable tbody");
+    winnerTable.innerHTML = '';
+
+    if (winners.length === 0) {
+        document.getElementById("winnerList").classList.add('hidden');
+        return;
+    }
+
+    winners.forEach((w, i) => {
+        winnerTable.innerHTML += `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${w.name}</td>
+                <td>${w.prize}</td>
+                <td>${w.gift}</td>
+                <td>${w.couponCode}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("winnerList").classList.remove('hidden');
+}
+
+// Call renderWinners to show winners on page load (if they exist)
+renderWinners();
+
     function addParticipant() {
         const name = document.getElementById('participantName').value.trim();
         const traderAddress = document.getElementById('traderAddress').value.trim();
