@@ -150,13 +150,14 @@
     <button class="btn-custom" onclick="resetWinners()">Reset Winners</button>
     <button class="btn-custom" onclick="exportWinnersExcel()">Export to Excel</button>
     <button class="btn-custom" onclick="deleteAllParticipants()">Delete All Participants</button>
+    <button class="btn-custom btn-block" onclick="uploadFile()">Upload Excel File</button>
 </div>
 
 <div id="adminPanel" class="admin-panel">
     <h2 class="text-center text-white">Manage Participants</h2>
     <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control">
    <small class="text-white">Accepted file formats: .xlsx, .xls, .csv</small>
-    <button class="btn-custom btn-block" onclick="uploadFile()">Upload Excel File</button>
+    
     <hr>
     <table id="participantTable" class="table table-bordered mt-4">
         <thead><tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr></thead>
@@ -203,53 +204,14 @@
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const data = e.target.result;
-            try {
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(sheet);
-
-                let addedCount = 0;
-                let skippedCount = 0;
-
-                json.forEach(row => {
-                    const { Name, TraderAddress, CouponCode } = row;
-                    const name = Name ? Name.toString().trim() : "";
-                    const traderAddress = TraderAddress ? TraderAddress.toString().trim() : "";
-                    const couponCode = CouponCode ? CouponCode.toString().trim() : "";
-
-                    if (name && traderAddress && couponCode) {
-                        if (!participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                            participants.push({ name, traderAddress, couponCode });
-                            addedCount++;
-                        }
-                    } else {
-                        skippedCount++;
-                    }
-                });
-
-                localStorage.setItem('participants', JSON.stringify(participants));
-                renderTable();
-                alert(`Upload complete: ${addedCount} records added, ${skippedCount} records skipped due to missing required fields.`);
-            } catch (error) {
-                alert("Error reading or parsing the Excel file. Please make sure the file is in the correct format.");
-                console.error(error);
-            }
-        };
-        reader.onerror = function (error) {
-            alert("Error reading the file: " + error);
-        };
-        reader.readAsBinaryString(file);
-    }
+        
 
     // Add/Update Participant with duplicate check
     function addParticipant() {
         const name = document.getElementById('participantName').value.trim();
         const traderAddress = document.getElementById('traderAddress').value.trim();
-        
-        if (name && traderAddress) {
+        const coupn code = document. getElementByIid('coupon cods'). value. trim();
+        if (name && traderAddress && couponcode) {
             // Check for duplicate names (case-insensitive)
             if (participants.some((p, i) => p.name.toLowerCase() === name.toLowerCase() && i !== editIndex)) {
                 alert("Participant with this name already exists.");
