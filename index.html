@@ -210,6 +210,47 @@
 
     renderTable();
     renderWinners();
+    function startDraw() {
+    const numWinners = parseInt(prompt('Enter number of winners:'), 10);
+    if (isNaN(numWinners) || numWinners <= 0 || numWinners > participants.length) {
+        alert('Invalid number of winners.');
+        return;
+    }
+
+    winners = [];
+    const shuffled = participants.sort(() => 0.5 - Math.random());
+    for (let i = 0; i < numWinners; i++) {
+        const winner = shuffled[i];
+        const prize = prompt(`Enter prize for ${winner.name}:`, '');
+        const gift = prompt(`Enter gift for ${winner.name}:`, '');
+        winners.push({ ...winner, prize, gift });
+    }
+
+    localStorage.setItem('winners', JSON.stringify(winners));
+    renderWinners();
+    alert('Lucky draw completed!');
+}
+
+function renderWinners() {
+    const winnerList = document.getElementById('winnerList');
+    winnerList.classList.remove('hidden');
+
+    const tbody = document.querySelector('#winnersTable tbody');
+    tbody.innerHTML = '';
+    winners.forEach((w, i) => {
+        tbody.innerHTML += `<tr>
+            <td>${i + 1}</td>
+            <td>${w.name}</td>
+            <td>${w.prize}</td>
+            <td>${w.gift}</td>
+            <td>${w.couponCode}</td>
+        </tr>`;
+    });
+}
+
+// Ensure winners are shown on page reload
+renderWinners();
+
 </script>
 </body>
 </html>
