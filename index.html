@@ -79,7 +79,6 @@
 <!-- Admin Panel -->
 <div id="adminPanel" class="admin-panel hidden">
     <h2 class="text-center text-white">Manage Participants</h2>
-
     <div class="form-group">
         <input type="text" id="participantName" placeholder="Participant Name" class="form-control">
     </div>
@@ -121,61 +120,6 @@
         renderTable();
     }
 
-    function startDraw() {
-    if (participants.length === 0) {
-        alert("No participants added!");
-        return;
-    }
-
-    const numWinners = prompt("How many winners do you want to pick?");
-    if (!numWinners || isNaN(numWinners) || numWinners <= 0) {
-        alert("Please enter a valid number of winners.");
-        return;
-    }
-
-    winners = [];
-    const shuffled = [...participants].sort(() => 0.5 - Math.random());
-    for (let i = 0; i < Math.min(numWinners, shuffled.length); i++) {
-        const winner = {
-            ...shuffled[i],
-            prize: `Prize ${i + 1}`,
-            gift: `Gift ${i + 1}`
-        };
-        winners.push(winner);
-    }
-
-    localStorage.setItem('winners', JSON.stringify(winners));
-    alert(`${winners.length} winners selected!`);
-    renderWinners();
-}
-
-function renderWinners() {
-    const winnerTable = document.querySelector("#winnersTable tbody");
-    winnerTable.innerHTML = '';
-
-    if (winners.length === 0) {
-        document.getElementById("winnerList").classList.add('hidden');
-        return;
-    }
-
-    winners.forEach((w, i) => {
-        winnerTable.innerHTML += `
-            <tr>
-                <td>${i + 1}</td>
-                <td>${w.name}</td>
-                <td>${w.prize}</td>
-                <td>${w.gift}</td>
-                <td>${w.couponCode}</td>
-            </tr>
-        `;
-    });
-
-    document.getElementById("winnerList").classList.remove('hidden');
-}
-
-// Call renderWinners to show winners on page load (if they exist)
-renderWinners();
-
     function addParticipant() {
         const name = document.getElementById('participantName').value.trim();
         const traderAddress = document.getElementById('traderAddress').value.trim();
@@ -205,59 +149,49 @@ renderWinners();
         });
     }
 
-    function uploadFile() {
-        const file = document.getElementById('fileInput').files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet);
+    function startDraw() {
+        const winnerCount = parseInt(prompt("Enter number of winners:"));
+        if (isNaN(winnerCount) || winnerCount <= 0 || winnerCount > participants.length) {
+            alert("Invalid number of winners!");
+            return;
+        }
 
-            participants = rows;
-            localStorage.setItem('participants', JSON.stringify(participants));
-            renderTable();
-        };
-        reader.readAsArrayBuffer(file);
+        winners = [];
+        const shuffled = participants.sort(() => 0.5 - Math.random());
+        const selectedWinners = shuffled.slice(0, winnerCount);
+
+        selectedWinners.forEach((winner, index) => {
+            const prize = prompt(`Enter prize for Winner #${index + 1} (${winner.name}):`);
+            const gift = prompt(`Enter gift for Winner #${index + 1} (${winner.name}):`);
+            winners.push({ ...winner, prize, gift });
+        });
+
+        localStorage.setItem('winners', JSON.stringify(winners));
+        displayWinners();
     }
 
-    function deleteParticipant(index) {
-        participants.splice(index, 1);
-        localStorage.setItem('participants', JSON.stringify(participants));
-        renderTable();
-    }
+    function displayWinners() {
+        const winnerList = document.getElementById('winnerList');
+        winnerList.classList.remove('hidden');
 
-    function exportWinnersPDF() {
-        const docDefinition = {
-            content: [
-                { text: 'Winners List', style: 'header' },
-                {
-                    table: {
-                        body: [
-                            ['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'],
-                            ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode])
-                        ]
-                    }
-                }
-            ],
-            styles: {
-                header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] }
-            }
-        };
-        pdfMake.createPdf(docDefinition).download('winners.pdf');
-    }
-
-    function exportWinnersExcel() {
-        const ws = XLSX.utils.json_to_sheet(winners);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Winners');
-        XLSX.writeFile(wb, 'winners.xlsx');
+        const tbody = document.querySelector('#winnersTable tbody');
+        tbody.innerHTML = '';
+        winners.forEach((w, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${i + 1}</td>
+                <td>${w.name}</td>
+                <td>${w.prize}</td>
+                <td>${w.gift}</td>
+                <td>${w.couponCode}</td>
+            </tr>`;
+        });
     }
 
     function resetWinners() {
         winners = [];
         localStorage.setItem('winners', JSON.stringify(winners));
         alert('Winners list reset!');
+        displayWinners();
     }
 
     function deleteAllParticipants() {
@@ -267,6 +201,7 @@ renderWinners();
     }
 
     renderTable();
+    displayWinners();
 </script>
 </body>
 </html>
