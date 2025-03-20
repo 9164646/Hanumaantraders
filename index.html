@@ -89,10 +89,8 @@
         <input type="text" id="couponCode" placeholder="Coupon Code" class="form-control">
     </div>
     <button class="btn-custom" onclick="addParticipant()">Add Participant</button>
-
     <hr>
     <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="form-control mb-3" onchange="uploadFile()">
-
     <table id="participantTable" class="table table-bordered">
         <thead>
             <tr><th>S. No</th><th>Name</th><th>Trader Address</th><th>Coupon Code</th><th>Actions</th></tr>
@@ -115,8 +113,7 @@
     let winners = JSON.parse(localStorage.getItem('winners')) || [];
 
     function toggleAdminPanel() {
-        const panel = document.getElementById('adminPanel');
-        panel.classList.toggle('hidden');
+        document.getElementById('adminPanel').classList.toggle('hidden');
         renderTable();
     }
 
@@ -135,73 +132,60 @@
         }
     }
 
-    function renderTable() {
-        const tbody = document.querySelector('#participantTable tbody');
-        tbody.innerHTML = '';
-        participants.forEach((p, i) => {
-            tbody.innerHTML += `<tr>
-                <td>${i + 1}</td>
-                <td>${p.name}</td>
-                <td>${p.traderAddress}</td>
-                <td>${p.couponCode}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteParticipant(${i})">Delete</button></td>
-            </tr>`;
-        });
+    function deleteParticipant(index) {
+        participants.splice(index, 1);
+        localStorage.setItem('participants', JSON.stringify(participants));
+        renderTable();
     }
 
     function startDraw() {
-        const winnerCount = parseInt(prompt("Enter number of winners:"));
-        if (isNaN(winnerCount) || winnerCount <= 0 || winnerCount > participants.length) {
-            alert("Invalid number of winners!");
+        const numWinners = parseInt(prompt('Enter number of winners:'), 10);
+        if (isNaN(numWinners) || numWinners <= 0 || numWinners > participants.length) {
+            alert('Invalid number of winners.');
             return;
         }
 
         winners = [];
         const shuffled = participants.sort(() => 0.5 - Math.random());
-        const selectedWinners = shuffled.slice(0, winnerCount);
-
-        selectedWinners.forEach((winner, index) => {
-            const prize = prompt(`Enter prize for Winner #${index + 1} (${winner.name}):`);
-            const gift = prompt(`Enter gift for Winner #${index + 1} (${winner.name}):`);
+        for (let i = 0; i < numWinners; i++) {
+            const winner = shuffled[i];
+            const prize = prompt(`Enter prize for ${winner.name}:`, '');
+            const gift = prompt(`Enter gift for ${winner.name}:`, '');
             winners.push({ ...winner, prize, gift });
-        });
+        }
 
         localStorage.setItem('winners', JSON.stringify(winners));
-        displayWinners();
+        renderWinners();
     }
 
-    function displayWinners() {
-        const winnerList = document.getElementById('winnerList');
-        winnerList.classList.remove('hidden');
-
+    function renderWinners() {
         const tbody = document.querySelector('#winnersTable tbody');
-        tbody.innerHTML = '';
-        winners.forEach((w, i) => {
-            tbody.innerHTML += `<tr>
-                <td>${i + 1}</td>
-                <td>${w.name}</td>
-                <td>${w.prize}</td>
-                <td>${w.gift}</td>
-                <td>${w.couponCode}</td>
-            </tr>`;
-        });
+        tbody.innerHTML = winners.map((w, i) => 
+            `<tr><td>${i + 1}</td><td>${w.name}</td><td>${w.prize}</td><td>${w.gift}</td><td>${w.couponCode}</td></tr>`
+        ).join('');
+        document.getElementById('winnerList').classList.remove('hidden');
     }
 
-    function resetWinners() {
-        winners = [];
-        localStorage.setItem('winners', JSON.stringify(winners));
-        alert('Winners list reset!');
-        displayWinners();
+    function exportWinnersPDF() {
+        const docDefinition = {
+            content: [
+                { text: 'Winners List', style: 'header' },
+                { table: { body: [['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'], ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode])]} }
+            ],
+            styles: { header: { fontSize: 18, bold: true } }
+        };
+        pdfMake.createPdf(docDefinition).download('winners.pdf');
     }
 
-    function deleteAllParticipants() {
-        participants = [];
-        localStorage.setItem('participants', JSON.stringify(participants));
-        renderTable();
+    function exportWinnersExcel() {
+        const ws = XLSX.utils.json_to_sheet(winners);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Winners');
+        XLSX.writeFile(wb, 'winners.xlsx');
     }
 
     renderTable();
-    displayWinners();
+    renderWinners();
 </script>
 </body>
 </html>
