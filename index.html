@@ -113,7 +113,8 @@
     let winners = JSON.parse(localStorage.getItem('winners')) || [];
 
     function toggleAdminPanel() {
-        document.getElementById('adminPanel').classList.toggle('hidden');
+        const panel = document.getElementById('adminPanel');
+        panel.classList.toggle('hidden');
         renderTable();
     }
 
@@ -138,41 +139,37 @@
         renderTable();
     }
 
-    function startDraw() {
-        const numWinners = parseInt(prompt('Enter number of winners:'), 10);
-        if (isNaN(numWinners) || numWinners <= 0 || numWinners > participants.length) {
-            alert('Invalid number of winners.');
-            return;
-        }
-
-        winners = [];
-        const shuffled = participants.sort(() => 0.5 - Math.random());
-        for (let i = 0; i < numWinners; i++) {
-            const winner = shuffled[i];
-            const prize = prompt(`Enter prize for ${winner.name}:`, '');
-            const gift = prompt(`Enter gift for ${winner.name}:`, '');
-            winners.push({ ...winner, prize, gift });
-        }
-
-        localStorage.setItem('winners', JSON.stringify(winners));
-        renderWinners();
-    }
-
-    function renderWinners() {
-        const tbody = document.querySelector('#winnersTable tbody');
-        tbody.innerHTML = winners.map((w, i) => 
-            `<tr><td>${i + 1}</td><td>${w.name}</td><td>${w.prize}</td><td>${w.gift}</td><td>${w.couponCode}</td></tr>`
-        ).join('');
-        document.getElementById('winnerList').classList.remove('hidden');
+    function uploadFile() {
+        const file = document.getElementById('fileInput').files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            participants = participants.concat(rows);
+            localStorage.setItem('participants', JSON.stringify(participants));
+            renderTable();
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     function exportWinnersPDF() {
         const docDefinition = {
             content: [
                 { text: 'Winners List', style: 'header' },
-                { table: { body: [['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'], ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode])]} }
+                {
+                    table: {
+                        body: [
+                            ['S. No', 'Name', 'Prize', 'Gift', 'Coupon Code'],
+                            ...winners.map((w, i) => [i + 1, w.name, w.prize, w.gift, w.couponCode])
+                        ]
+                    }
+                }
             ],
-            styles: { header: { fontSize: 18, bold: true } }
+            styles: {
+                header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] }
+            }
         };
         pdfMake.createPdf(docDefinition).download('winners.pdf');
     }
@@ -182,6 +179,33 @@
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Winners');
         XLSX.writeFile(wb, 'winners.xlsx');
+    }
+
+    function resetWinners() {
+        winners = [];
+        localStorage.setItem('winners', JSON.stringify(winners));
+        alert('Winners list reset!');
+        renderWinners();
+    }
+
+    function deleteAllParticipants() {
+        participants = [];
+        localStorage.setItem('participants', JSON.stringify(participants));
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.querySelector('#participantTable tbody');
+        tbody.innerHTML = '';
+        participants.forEach((p, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${i + 1}</td>
+                <td>${p.name}</td>
+                <td>${p.traderAddress}</td>
+                <td>${p.couponCode}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteParticipant(${i})">Delete</button></td>
+            </tr>`;
+        });
     }
 
     renderTable();
