@@ -18,27 +18,12 @@
         th, td { padding: 10px; border: 1px solid #ddd; }
         #winnerList { margin-top: 20px; }
         .hidden { display: none; }
-        .confetti {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: #FFD700;
-            top: 0;
-            animation: fall 3s ease-out;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10px); }
-            100% { transform: translateY(100vh); }
-        }
     </style>
 </head>
 <body>
-    <audio id="drumroll" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
-    <audio id="chime" src="https://www.fesliyanstudios.com/play-mp3/438" preload="auto"></audio>
-
     <h1>Sri Hanumaan Trader's Lucky Draw</h1>
     <button class="btn-custom" onclick="toggleAdminPanel()">Admin Panel</button>
-    <button id="startDrawBtn" class="btn-custom" onclick="startDraw()">Start Lucky Draw</button>
+    <button class="btn-custom" onclick="startDraw()">Start Lucky Draw</button>
     <button class="btn-custom" onclick="exportWinnersPDF()">Download PDF</button>
     <button class="btn-custom" onclick="resetWinners()">Reset Winners</button>
     <button class="btn-custom" onclick="exportWinnersExcel()">Export to Excel</button>
@@ -66,21 +51,20 @@
     </div>
 
     <!-- Winners Section -->
-    <div id="winnerList" class="hidden"></div>
+    <div id="winnerList" class="hidden">
+        <h2>Winners</h2>
+        <table id="winnersTable" class="table table-bordered">
+            <thead>
+                <tr><th>S. No</th><th>Name</th><th>Trader Address</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
     <script>
         let participants = JSON.parse(localStorage.getItem('participants')) || [];
         let winners = JSON.parse(localStorage.getItem('winners')) || [];
         let editIndex = -1;
-
-        const prizes = [
-            { prize: '1st Prize - 6 Gram Gold', count: 1, gift: '6 Gram Gold' },
-            { prize: '2nd Prize - 4 Gram Gold', count: 2, gift: '4 Gram Gold' },
-            { prize: '3rd Prize - 3 Gram Gold', count: 3, gift: '3 Gram Gold' },
-            { prize: '4th Prize - 2 Gram Gold', count: 4, gift: '2 Gram Gold' },
-            { prize: '5th Prize - 1 Gram Gold', count: 5, gift: '1 Gram Gold' },
-            { prize: '6th Prize - 0.5 Gram Silver', count: 6, gift: '0.5 Gram Silver' }
-        ];
 
         function toggleAdminPanel() {
             document.getElementById('adminPanel').classList.toggle('hidden');
@@ -94,10 +78,6 @@
             if (!name || !traderAddress) return alert("Please enter both Name and Trader Address.");
 
             if (editIndex === -1) {
-                if (participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                    alert("Participant with this name already exists.");
-                    return;
-                }
                 participants.push({ name, traderAddress });
             } else {
                 participants[editIndex] = { name, traderAddress };
@@ -125,13 +105,6 @@
             });
         }
 
-        function editParticipant(index) {
-            const participant = participants[index];
-            document.getElementById('participantName').value = participant.name;
-            document.getElementById('traderAddress').value = participant.traderAddress;
-            editIndex = index;
-        }
-
         function uploadExcel() {
             const fileInput = document.getElementById('excelFile');
             if (!fileInput.files.length) return alert("Please select an Excel file.");
@@ -143,7 +116,7 @@
                 const data = XLSX.utils.sheet_to_json(sheet);
 
                 data.forEach(row => {
-                    if (row.Name && row['Trader Address'] && !participants.some(p => p.name.toLowerCase() === row.Name.toLowerCase())) {
+                    if (row.Name && row['Trader Address']) {
                         participants.push({ name: row.Name, traderAddress: row['Trader Address'] });
                     }
                 });
@@ -155,21 +128,41 @@
             reader.readAsBinaryString(fileInput.files[0]);
         }
 
-        function downloadTemplate() {
-            const ws = XLSX.utils.json_to_sheet([{ Name: '', 'Trader Address': '' }]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, 'LuckyDraw_Template.xlsx');
+        function startDraw() {
+            if (participants.length === 0) return alert("No participants available for the draw.");
+            const winnerIndex = Math.floor(Math.random() * participants.length);
+            const winner = participants[winnerIndex];
+            winners.push(winner);
+            localStorage.setItem('winners', JSON.stringify(winners));
+            alert(`Winner: ${winner.name}`);
+            renderWinners();
         }
 
-        function exportWinnersExcel() {
-            const ws = XLSX.utils.json_to_sheet(winners);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Winners");
-            XLSX.writeFile(wb, "Winners_List.xlsx");
+        function renderWinners() {
+            const winnerList = document.getElementById('winnerList');
+            winnerList.classList.remove('hidden');
+            const tbody = document.querySelector('#winnersTable tbody');
+            tbody.innerHTML = '';
+            winners.forEach((w, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${w.name}</td>
+                        <td>${w.traderAddress}</td>
+                    </tr>`;
+            });
+        }
+
+        function deleteAllParticipants() {
+            if (confirm("Are you sure you want to delete all participants?")) {
+                participants = [];
+                localStorage.setItem('participants', JSON.stringify(participants));
+                renderTable();
+            }
         }
 
         renderTable();
+        renderWinners();
     </script>
 </body>
 </html>
